@@ -5,11 +5,20 @@ from supabase import create_client, Client
 import httpx
 import os
 from typing import Optional
+from datetime import datetime, timezone
+from fastapi.routing import APIRoute
+from dotenv import load_dotenv
+import logging
+from routers.odoo import router as odoo_router
+
+load_dotenv()  # Auto-load .env.local / .env
+logger = logging.getLogger("smarteros")
+logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(
     title="Smarter OS API",
     description="Unified contact API for smarterbot.cl and smarterbot.store",
-    version="1.0.0"
+    version="1.1.0"
 )
 
 # CORS configuration
@@ -35,9 +44,30 @@ SUPABASE_SERVICE_ROLE = os.getenv("SUPABASE_SERVICE_ROLE")
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 RESEND_FROM = os.getenv("RESEND_FROM", "no-reply@smarterbot.cl")
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "smarterbotcl@gmail.com")
+CHATWOOT_BASE_URL = os.getenv("CHATWOOT_BASE_URL")  # e.g. https://chatwoot.smarterbot.cl
+CHATWOOT_TOKEN = os.getenv("CHATWOOT_TOKEN")        # Personal access token
+CHATWOOT_ACCOUNT_ID = os.getenv("CHATWOOT_ACCOUNT_ID")  # Numeric account id
+CHATWOOT_INBOX_ID = os.getenv("CHATWOOT_INBOX_ID")      # Numeric inbox id
 
 # Supabase client
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE) if SUPABASE_URL and SUPABASE_SERVICE_ROLE else None
+if supabase:
+    logger.info("Supabase client initialized")
+else:
+    logger.info("Supabase not configured; using LOCAL_STORE fallback")
+# Local in-memory store (used only when Supabase is not configured in local dev)
+LOCAL_STORE: list[dict] = []
+# Register routers
+app.include_router(odoo_router)
+
+# Optional MCP server integration (enabled by default; set ENABLE_MCP=false to disable)
+if os.getenv("ENABLE_MCP", "true").lower() in ("1", "true", "yes", "on"):
+    try:
+        from fastapi_mcp import FastApiMCP
+        mcp = FastApiMCP(app)
+        logger.info("fastapi-mcp mounted at /mcp")
+    except Exception as e:
+        logger.warning(f"fastapi-mcp failed to initialize: {e}")
 
 
 class ContactRequest(BaseModel):
@@ -126,14 +156,53 @@ async def send_resend_emails(data: ContactRequest, domain: str):
     return True
 
 
+async def create_chatwoot_conversation(data: ContactRequest, domain: str):
+    """Optionally create a Chatwoot conversation + initial message if env vars present."""
+    if not (CHATWOOT_BASE_URL and CHATWOOT_TOKEN and CHATWOOT_ACCOUNT_ID and CHATWOOT_INBOX_ID):
+        return False
+    payload = {
+        "source_id": f"lead-{data.email}",
+        "inbox_id": int(CHATWOOT_INBOX_ID),
+        "contact": {
+            "name": data.name,
+            "email": data.email,
+            "phone_number": data.phone or None,
+        },
+        "additional_attributes": {
+            "domain": domain,
+            "source": data.source,
+        }
+    }
+    headers = {"Authorization": f"Bearer {CHATWOOT_TOKEN}", "Content-Type": "application/json"}
+    try:
+        async with httpx.AsyncClient() as client:
+            conv_resp = await client.post(f"{CHATWOOT_BASE_URL}/api/v1/accounts/{CHATWOOT_ACCOUNT_ID}/conversations", json=payload, headers=headers, timeout=5.0)
+            if conv_resp.status_code not in (200, 201):
+                return False
+            conversation_id = conv_resp.json().get("id")
+            if conversation_id:
+                await client.post(
+                    f"{CHATWOOT_BASE_URL}/api/v1/accounts/{CHATWOOT_ACCOUNT_ID}/conversations/{conversation_id}/messages",
+                    json={"content": data.message, "content_type": "text", "private": False, "message_type": "incoming"},
+                    headers=headers,
+                    timeout=5.0,
+                )
+        return True
+    except Exception:
+        return False
+
+
 @app.get("/")
 async def root():
     """Health check endpoint"""
     return {
         "service": "Smarter OS API",
         "status": "operational",
-        "version": "1.0.0",
-        "endpoints": ["/contact", "/health"]
+        "version": "1.1.0",
+        "endpoints": ["/contact", "/health", "/odoo/search_read", "/odoo/create", "/odoo/write", "/odoo/unlink", "/odoo/call"],
+        "odoo_config": {
+            "configured": bool(os.getenv("ODOO_URL") and os.getenv("ODOO_DB") and os.getenv("ODOO_API_KEY"))
+        }
     }
 
 
@@ -144,6 +213,37 @@ async def health():
         "status": "healthy",
         "supabase": "configured" if supabase else "not configured",
         "resend": "configured" if RESEND_API_KEY else "not configured",
+    }
+
+
+@app.get("/registry.json")
+async def registry():
+    """Machine-readable MCP registry of available API endpoints/tools."""
+    tools = []
+    for route in app.routes:
+        if isinstance(route, APIRoute):
+            methods = list(route.methods or [])
+            # Skip automatic docs endpoints
+            if route.path.startswith("/openapi") or route.path.startswith("/docs") or route.path.startswith("/redoc"):
+                continue
+            # Basic classification tag inference
+            category = "odoo" if route.path.startswith("/odoo") else "core"
+            tools.append({
+                "name": route.name,
+                "path": route.path,
+                "methods": methods,
+                "summary": (route.summary or route.description or "").strip() or route.name,
+                "category": category,
+            })
+    return {
+        "version": app.version,
+        "service": app.title,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "mcp": {
+            "tools": tools,
+            "count": len(tools),
+            "auto_generated": True,
+        }
     }
 
 
@@ -159,12 +259,28 @@ async def create_contact(data: ContactRequest, request: Request):
     - **source**: Optional source identifier (e.g., 'smarterbot.cl', 'smarterbot.store')
     """
     
-    # Validate Supabase configuration
-    if not supabase:
-        raise HTTPException(status_code=500, detail="Database not configured")
-    
-    # Get domain from request
+    # Resolve domain early for both local fallback and Supabase path
     domain = request.headers.get("host", "unknown")
+
+    # Validate Supabase configuration or fallback to local store in dev
+    if not supabase:
+        # Fallback: store locally for development testing (ENV!="prod")
+        LOCAL_STORE.append({
+            "id": f"local-{len(LOCAL_STORE)+1}",
+            "name": data.name,
+            "email": data.email,
+            "message": data.message,
+            "phone": data.phone,
+            "source": data.source,
+            "domain": domain,
+            "status": "new",
+            "created_at": "(local)"
+        })
+        try:
+            await send_resend_emails(data, domain)
+        except Exception:
+            pass
+        return ContactResponse(ok=True)
     
     # Insert into Supabase
     try:
@@ -189,6 +305,11 @@ async def create_contact(data: ContactRequest, request: Request):
         await send_resend_emails(data, domain)
     except Exception:
         pass  # Don't fail the request if email sending fails
+    # Attempt Chatwoot conversation creation (non-blocking intent)
+    try:
+        await create_chatwoot_conversation(data, domain)
+    except Exception:
+        pass
     
     return ContactResponse(ok=True)
 
@@ -202,7 +323,8 @@ async def list_contacts(limit: int = 10, status: Optional[str] = None):
     - **status**: Filter by status (e.g., 'new', 'contacted', 'closed')
     """
     if not supabase:
-        raise HTTPException(status_code=500, detail="Database not configured")
+        # Return local store contents for dev
+        return {"contacts": LOCAL_STORE[:limit], "count": len(LOCAL_STORE)}
     
     query = supabase.table("contacts").select("*").order("created_at", desc=True).limit(min(limit, 100))
     

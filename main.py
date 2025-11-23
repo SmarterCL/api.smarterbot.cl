@@ -10,6 +10,9 @@ from fastapi.routing import APIRoute
 from dotenv import load_dotenv
 import logging
 from routers.odoo import router as odoo_router
+from routers.supabase import router as supabase_router
+from routers.n8n import router as n8n_router
+from routers.chatwoot import router as chatwoot_router
 
 load_dotenv()  # Auto-load .env.local / .env
 logger = logging.getLogger("smarteros")
@@ -59,6 +62,9 @@ else:
 LOCAL_STORE: list[dict] = []
 # Register routers
 app.include_router(odoo_router)
+app.include_router(supabase_router)
+app.include_router(n8n_router)
+app.include_router(chatwoot_router)
 
 # Optional MCP server integration (enabled by default; set ENABLE_MCP=false to disable)
 if os.getenv("ENABLE_MCP", "true").lower() in ("1", "true", "yes", "on"):

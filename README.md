@@ -1,210 +1,254 @@
-# Smarter OS API
+# 🚀 SmarterOS API Gateway  
+**Centro neural del Operating System multi-tenant para PYMEs de Chile**
 
-FastAPI service for unified contact form submissions across smarterbot.cl and smarterbot.store.
+La API Gateway es el **cerebro central** que conecta toda la arquitectura de SmarterOS:  
+ERP, CRM, Chat, Automatizaciones, Bots IA, Seguridad, y los módulos cognitivos multi-tenant por RUT.
 
-## Features
+Sirve como:
+- 🔐 Proveedor de seguridad (SSO + JWT + RUT)
+- 🧠 Router inteligente multi-servicio
+- 🔌 Integrador entre sistemas externos (Shopify, Odoo, Botpress, n8n)
+- 🗂️ Normalizador de datos multi-tenant
+- 🛡️ Capa de gobernanza y auditoría (MCP + Vault)
 
-- ✅ POST `/contact` - Submit contact form
-- ✅ GET `/contacts` - List recent contacts
-- ✅ GET `/health` - Health check
-- ✅ CORS configured for all Smarter OS domains
-- ✅ Supabase integration for data persistence
-- ✅ Resend integration for email notifications
-- ✅ Automatic OpenAPI documentation at `/docs`
+---
 
-## Quick Start
+# 🧩 **Funciones Críticas**
 
-### Local Development
+## 1. 🔐 **Autenticación Unificada (SSO Clerk)**
+- Valida JWT emitidos por Clerk  
+- Extrae `user_id`, `email`, `rut`, `tenant_id`  
+- Crea automáticamente usuarios en Supabase y Odoo  
+- Renovación de tokens en background  
+- Middleware universal para todos los endpoints  
+
+---
+
+## 2. 🗄️ **Gestión Multi-Tenant por RUT**
+Basado en:
+
+- Tenant = RUT chileno
+- API Gateway asigna contexto  
+- Todas las consultas/mensajes/automatizaciones usan este tenant
+
+Implementación:
+- Row-Level Security en Supabase  
+- Secrets aislados en Vault  
+- Workspaces separados en Botpress, Chatwoot y n8n  
+- Catalogación de productos por tenant (Shopify/Odoo)  
+- Logs por tenant en Redpanda (próxima fase)
+
+---
+
+## 3. 🤖 **Orquestación AI + MCP**
+La API provee una capa de orquestación AI con:
+
+- OpenAI GPT-4.1 / GPT-4.1 Turbo  
+- Claude 3.5 Sonnet / Haiku  
+- Gemini 2.0 Pro  
+- Model Context Protocol (MCP)  
+- RAG con pgvector por tenant  
+- Handlers para:
+  - Preguntas frecuentes
+  - Embeddings
+  - OCR
+  - Clasificación LLM
+  - Carritos eCommerce automáticos
+
+---
+
+## 4. 🔌 **Integración con Plataformas**
+
+### Shopify
+- Webhooks verificados por HMAC  
+- Carritos asistidos  
+- Import/export productos  
+- Inventario → Odoo  
+- Checkout inteligente  
+
+### Odoo
+- Login SSO  
+- Creación automática de usuarios  
+- Catálogo e inventario  
+- Órdenes de venta  
+- Actualización de stock  
+- Conector multi-tenant  
+
+### Chatwoot (CRM Inbox)
+- Creación de conversaciones  
+- Derivaciones a agentes  
+- Respuestas con IA  
+- Activación de flujos n8n  
+
+### n8n (Automatizaciones)
+- Activación de workflows  
+- Lectura/escritura de datos  
+- Notificaciones y webhooks  
+- OCR → clasificación → respuesta  
+
+### Botpress (Agentes de IA)
+- Multi-agent  
+- Contexto persistente  
+- Hand-offs inteligentes  
+- Acceso seguro vía Gateway  
+
+---
+
+# 🧱 **Arquitectura**
+
+```
+      [ User ]
+         |
+    (Clerk Login)
+         |
+   ┌───────────────┐
+   │  API Gateway  │  ← FastAPI + Clerk + Supabase + MCP
+   └───────────────┘
+ /     |       |       \
+/      |       |        \
+[Odoo] [Chatwoot] [n8n] [Botpress]
+  |        |        |        |
+(ERP)   (Inbox) (Automation) (AI Agents)
+
+  + KPI (Metabase)
+  + Storage (Supabase)
+  + Secrets (Vault)
+```
+
+---
+
+# 📡 **Principales Endpoints**
+
+## 🔐 Auth
+
+```
+GET  /auth/me
+POST /auth/validate
+POST /auth/refresh
+```
+
+## 🧠 AI
+
+```
+POST /ai/chat
+POST /ai/rag/query
+POST /ai/classify
+POST /ai/ocr
+```
+
+## 🛍️ Shopify / Odoo
+
+```
+POST /shopify/webhook/orders
+POST /shopify/webhook/products
+GET  /odoo/products
+POST /odoo/orders
+```
+
+## 💬 Chatwoot
+
+```
+POST /chatwoot/webhook
+POST /chatwoot/send
+```
+
+## 🤖 Automatizaciones n8n
+
+```
+POST /n8n/trigger
+POST /n8n/workflow/{id}
+```
+
+---
+
+# 🛡️ **Seguridad Multi-Capa**
+
+✔ Clerk JWT Validation  
+✔ HMAC Shopify  
+✔ Supabase RLS  
+✔ Vault Secrets por tenant  
+✔ Audit Logs (MCP)  
+✔ Rate-limiting por IP  
+✔ API Keys por integraciones  
+
+---
+
+# 📂 **Estructura del Repositorio**
+
+```
+/api
+├─ app/
+│  ├─ main.py
+│  ├─ auth/
+│  ├─ tenants/
+│  ├─ shopify/
+│  ├─ odoo/
+│  ├─ chatwoot/
+│  ├─ n8n/
+│  └─ ai/
+├─ tests/
+├─ docker-compose.yml
+├─ Dockerfile
+└─ README.md  ← este documento
+```
+
+---
+
+# 🔧 **Requisitos Técnicos**
+
+- Docker 24+
+- Python 3.11+
+- FastAPI
+- Clerk SDK
+- Supabase Python SDK
+- Pydantic v2
+- PostgreSQL 16
+- Redis (opcional)
+
+---
+
+# 🚀 **Deployment**
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Create .env file
-cat > .env << EOF
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE=eyJ...
-RESEND_API_KEY=re_...
-RESEND_FROM=no-reply@smarterbot.cl
-ADMIN_EMAIL=smarterbotcl@gmail.com
-EOF
-
-# Run server
-uvicorn main:app --reload --port 8000
+git pull origin main
+docker compose build
+docker compose up -d
 ```
 
-### Docker
+Variables necesarias en `.env`:
 
-```bash
-# Build image
-docker build -t api.smarterbot.cl .
-
-# Run container
-docker run -d \
-  -p 8000:8000 \
-  -e SUPABASE_URL=https://your-project.supabase.co \
-  -e SUPABASE_SERVICE_ROLE=eyJ... \
-  -e RESEND_API_KEY=re_... \
-  -e RESEND_FROM=no-reply@smarterbot.cl \
-  -e ADMIN_EMAIL=smarterbotcl@gmail.com \
-  --name api-smarterbot \
-  api.smarterbot.cl
+```env
+CLERK_SECRET_KEY=
+CLERK_PUBLISHABLE_KEY=
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE=
+OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
+GOOGLE_API_KEY=
 ```
 
-### Docker Compose
+---
 
-Add to `dkcompose/docker-compose.yml`:
+# 🗺️ **Roadmap 2026**
 
-```yaml
-services:
-  api-smarterbot:
-    build: ../api.smarterbot.cl
-    container_name: api-smarterbot
-    restart: unless-stopped
-    ports:
-      - "8000:8000"
-    environment:
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_ROLE=${SUPABASE_SERVICE_ROLE}
-      - RESEND_API_KEY=${RESEND_API_KEY}
-      - RESEND_FROM=${RESEND_FROM:-no-reply@smarterbot.cl}
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-smarterbotcl@gmail.com}
-    networks:
-      - smarteros
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.api-smarterbot.rule=Host(`api.smarterbot.cl`)"
-      - "traefik.http.routers.api-smarterbot.entrypoints=websecure"
-      - "traefik.http.routers.api-smarterbot.tls=true"
-      - "traefik.http.routers.api-smarterbot.tls.certresolver=letsencrypt"
-      - "traefik.http.services.api-smarterbot.loadbalancer.server.port=8000"
-```
+- 🔄 Sincronización Shopify/Odoo 2.0
+- 🧾 Módulo de facturación SII
+- 💳 Pagos Chile (Webpay, Khipu, MACH)
+- 🧠 Agentes Cognitivos RUT → SII
+- 📊 Analytics predictivo Next-Level
+- 🧩 Shopify App pública
+- 📱 App móvil SmarterOS
 
-## API Documentation
+---
 
-Once running, visit:
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-- **OpenAPI JSON**: http://localhost:8000/openapi.json
+# 🤝 **Contacto**
 
-## Usage
+**SmarterBot Chile — Plataforma Cognitiva para PYMEs**
 
-### Submit Contact Form
+🌍 https://smarterbot.cl  
+✉️ smarterbotcl@gmail.com  
+📱 +56 9 7954 0471  
 
-```bash
-curl -X POST http://localhost:8000/contact \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Juan Pérez",
-    "email": "juan@example.com",
-    "message": "Hola, quiero más información sobre automatización",
-    "phone": "+56912345678",
-    "source": "smarterbot.cl"
-  }'
-```
+---
 
-Response:
-```json
-{
-  "ok": true,
-  "message": "Contact submitted successfully"
-}
-```
-
-### List Contacts
-
-```bash
-curl http://localhost:8000/contacts?limit=5&status=new
-```
-
-### Health Check
-
-```bash
-curl http://localhost:8000/health
-```
-
-## Environment Variables
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `SUPABASE_URL` | ✅ | - | Supabase project URL |
-| `SUPABASE_SERVICE_ROLE` | ✅ | - | Supabase service role key (bypasses RLS) |
-| `RESEND_API_KEY` | ⚠️ | - | Resend API key (optional, but email won't work without it) |
-| `RESEND_FROM` | ❌ | `no-reply@smarterbot.cl` | From email address |
-| `ADMIN_EMAIL` | ❌ | `smarterbotcl@gmail.com` | Admin notification email |
-
-## Integration
-
-Update frontend forms to use the new API:
-
-**smarterbot.cl/components/contact-section.tsx**:
-```typescript
-const res = await fetch("https://api.smarterbot.cl/contact", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    name,
-    email,
-    message,
-    phone,
-    source: "smarterbot.cl",
-  }),
-})
-```
-
-**smarterbot.store/src/pages/Contact.tsx**:
-```typescript
-const res = await fetch("https://api.smarterbot.cl/contact", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    name,
-    email,
-    message,
-    phone,
-    source: "smarterbot.store",
-  }),
-})
-```
-
-## Database Schema
-
-Requires `contacts` table in Supabase:
-
-```sql
-create table public.contacts (
-  id uuid default gen_random_uuid() primary key,
-  name text not null,
-  email text not null,
-  message text not null,
-  phone text,
-  source text,
-  domain text,
-  status text default 'new',
-  created_at timestamp with time zone default now()
-);
-
--- RLS (service role bypasses this)
-alter table public.contacts enable row level security;
-```
-
-## Production Deployment
-
-1. **Build and push to registry**:
-```bash
-docker build -t registry.smarterbot.cl/api:latest .
-docker push registry.smarterbot.cl/api:latest
-```
-
-2. **Deploy with docker-compose** in production server
-
-3. **Configure Traefik** for HTTPS (labels already included)
-
-4. **Test endpoint**:
-```bash
-curl https://api.smarterbot.cl/health
-```
-
-## License
-
-Part of Smarter OS ecosystem.
+**Hecho en Chile 🇨🇱**

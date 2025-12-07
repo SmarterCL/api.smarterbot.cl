@@ -8,7 +8,7 @@ from pydantic import BaseModel
 import httpx
 
 # Import routers
-from routers import runtime
+from routers import runtime, runtime_ingest
 
 # Rate Limiting Config (desde env o default)
 RATE_LIMIT_RPM = int(os.getenv("RATE_LIMIT_RPM", "300"))
@@ -227,6 +227,7 @@ async def openrouter_completion(
 
 # Include routers
 app.include_router(runtime.router)
+app.include_router(runtime_ingest.router)
 
 # Initialize FastAPI-MCP
 mcp = FastApiMCP(app)

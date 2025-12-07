@@ -1,19 +1,9 @@
-version: '3.8'
+version: "3.9"
 
 services:
-  smarteros-api-mcp:
-    build: .
-    container_name: smarteros-api-mcp
-    ports:
-      - "3002:3000"
-    environment:
-      - QWEN_API_KEY=${QWEN_API_KEY}
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-      - MCP_MODE=governed
+  smartapi:
+    image: smartercl/api-smarterbot:latest
+    container_name: smartapi
     restart: unless-stopped
-    networks:
-      - smarteros
-
-networks:
-  smarteros:
-    external: true
+    ports:
+      - "8001:8000"

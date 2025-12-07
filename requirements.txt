@@ -1,6 +1,9 @@
-fastapi>=0.115.0
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+pydantic[email]==2.10.3
+supabase==2.10.0
+# Downgraded httpx to satisfy supabase (<0.28)
+httpx==0.27.2
+python-dotenv==1.0.1
+prometheus-client==0.21.0  # optional metrics (expose later)
 fastapi-mcp==0.4.0
-uvicorn[standard]>=0.32.0
-httpx>=0.27.0
-python-multipart>=0.0.12
-pydantic>=2.10.0

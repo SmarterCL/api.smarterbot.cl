@@ -1,258 +1,254 @@
-# API SmarterBot - Enterprise API with MCP Integration
+# 🚀 SmarterOS API Gateway  
+**Centro neural del Operating System multi-tenant para PYMEs de Chile**
 
-**SmarterOS API** es la API empresarial de SmarterOS con integración nativa de FastAPI-MCP, Qwen LLM y OpenRouter.
+La API Gateway es el **cerebro central** que conecta toda la arquitectura de SmarterOS:  
+ERP, CRM, Chat, Automatizaciones, Bots IA, Seguridad, y los módulos cognitivos multi-tenant por RUT.
 
----
-
-## 🌐 URLs
-
-- **Producción**: https://api.smarterbot.cl
-- **Alternativa**: https://api.smarterbot.store
-- **Documentación**: https://api.smarterbot.cl/docs
-
----
-
-## 🚀 Sobre SmarterOS
-
-**SmarterOS** es un sistema operativo de código abierto, autoalojado en contenedores, que permite implementar en tiempo récord una PyME o Empresa con inteligencia artificial, contabilidad y pagos para Chile.
-
-Está diseñado para operar bajo RUT empresa, con validación tributaria y cumplimiento automático con el SII (Servicio de Impuestos Internos), manteniendo la normativa actualizada en tiempo real.
-
-### Estructura del Repositorio
-
-- **guias/**: Documentación, especificaciones y manuales
-  - **guias/especificaciones/**: Especificaciones técnicas
-  - **guias/guia-usuario/**: Guías de uso
-- **servicios/**: Definiciones de servicios por dominio (API, App, ERP, CRM)
-- **nucleo/**: Corazón del sistema (Agentes y Flujos de negocio)
-- **infraestructura/**: Definiciones de infraestructura y flujos CI/CD
-- **mcp/**: Protocolo de Contexto de Modelos (Specs)
-
-### Qué permite hacer SmarterOS
-
-- ✅ Crear una empresa digital operativa en horas, no en meses
-- ✅ Automatizar ventas, pagos, facturación y soporte
-- ✅ Cumplir automáticamente con normativa chilena
-- ✅ Operar con IA sin perder control legal ni contable
-- ✅ Escalar sin rehacer sistemas
-
-### Capacidades Clave (Product Requirements)
-
-- ✅ Autoalojado vía contenedores (Docker)
-- ✅ Código abierto
-- ✅ Multiempresa por RUT
-- ✅ Validación tributaria en línea
-- ✅ Integración con SII
-- ✅ Motor contable automático
-- ✅ Motor de pagos para Chile
-- ✅ Automatización de procesos con IA
-- ✅ Cumplimiento MCP para control y auditoría
-- ✅ Operación 24/7 sin personal dedicado
-
-### En términos simples
-
-> **SmarterOS convierte una empresa en un sistema automático, inteligente y legalmente válido en Chile.**
+Sirve como:
+- 🔐 Proveedor de seguridad (SSO + JWT + RUT)
+- 🧠 Router inteligente multi-servicio
+- 🔌 Integrador entre sistemas externos (Shopify, Odoo, Botpress, n8n)
+- 🗂️ Normalizador de datos multi-tenant
+- 🛡️ Capa de gobernanza y auditoría (MCP + Vault)
 
 ---
 
-## 🎯 Características de esta API
+# 🧩 **Funciones Críticas**
 
-### FastAPI-MCP Integration
-
-Esta API utiliza [FastAPI-MCP](https://github.com/tadata-org/fastapi_mcp) para exponer automáticamente los endpoints FastAPI como herramientas MCP (Model Context Protocol).
-
-**Beneficios**:
-- 🔄 Auto-conversión de endpoints a MCP tools
-- 🔐 Autenticación nativa con FastAPI
-- 📚 Documentación automática (OpenAPI/Swagger)
-- 🚀 Transport ASGI eficiente
-- 🎭 Compatible con Claude Desktop y agentes MCP
-
-### LLM Integration
-
-- **Qwen (Alibaba Cloud)**: LLM enterprise principal
-- **OpenRouter**: Fallback multi-modelo
-- **Modo Governed**: Validación y trazabilidad automática
+## 1. 🔐 **Autenticación Unificada (SSO Clerk)**
+- Valida JWT emitidos por Clerk  
+- Extrae `user_id`, `email`, `rut`, `tenant_id`  
+- Crea automáticamente usuarios en Supabase y Odoo  
+- Renovación de tokens en background  
+- Middleware universal para todos los endpoints  
 
 ---
 
-## 📡 Endpoints
+## 2. 🗄️ **Gestión Multi-Tenant por RUT**
+Basado en:
 
-| Endpoint | Método | Auth | Descripción |
-|----------|--------|------|-------------|
-| `/health` | GET | No | Health check y estado del sistema |
-| `/ai/qwen` | POST | Sí | Completions con Qwen (Alibaba) |
-| `/ai/openrouter` | POST | Sí | Completions con OpenRouter |
-| `/mcp` | POST | Sí | MCP protocol endpoint |
-| `/docs` | GET | No | Documentación interactiva (Swagger) |
+- Tenant = RUT chileno
+- API Gateway asigna contexto  
+- Todas las consultas/mensajes/automatizaciones usan este tenant
+
+Implementación:
+- Row-Level Security en Supabase  
+- Secrets aislados en Vault  
+- Workspaces separados en Botpress, Chatwoot y n8n  
+- Catalogación de productos por tenant (Shopify/Odoo)  
+- Logs por tenant en Redpanda (próxima fase)
 
 ---
 
-## 🔐 Autenticación
+## 3. 🤖 **Orquestación AI + MCP**
+La API provee una capa de orquestación AI con:
 
-Todos los endpoints protegidos requieren:
+- OpenAI GPT-4.1 / GPT-4.1 Turbo  
+- Claude 3.5 Sonnet / Haiku  
+- Gemini 2.0 Pro  
+- Model Context Protocol (MCP)  
+- RAG con pgvector por tenant  
+- Handlers para:
+  - Preguntas frecuentes
+  - Embeddings
+  - OCR
+  - Clasificación LLM
+  - Carritos eCommerce automáticos
+
+---
+
+## 4. 🔌 **Integración con Plataformas**
+
+### Shopify
+- Webhooks verificados por HMAC  
+- Carritos asistidos  
+- Import/export productos  
+- Inventario → Odoo  
+- Checkout inteligente  
+
+### Odoo
+- Login SSO  
+- Creación automática de usuarios  
+- Catálogo e inventario  
+- Órdenes de venta  
+- Actualización de stock  
+- Conector multi-tenant  
+
+### Chatwoot (CRM Inbox)
+- Creación de conversaciones  
+- Derivaciones a agentes  
+- Respuestas con IA  
+- Activación de flujos n8n  
+
+### n8n (Automatizaciones)
+- Activación de workflows  
+- Lectura/escritura de datos  
+- Notificaciones y webhooks  
+- OCR → clasificación → respuesta  
+
+### Botpress (Agentes de IA)
+- Multi-agent  
+- Contexto persistente  
+- Hand-offs inteligentes  
+- Acceso seguro vía Gateway  
+
+---
+
+# 🧱 **Arquitectura**
 
 ```
-Header: Authorization: Bearer <your-token>
+      [ User ]
+         |
+    (Clerk Login)
+         |
+   ┌───────────────┐
+   │  API Gateway  │  ← FastAPI + Clerk + Supabase + MCP
+   └───────────────┘
+ /     |       |       \
+/      |       |        \
+[Odoo] [Chatwoot] [n8n] [Botpress]
+  |        |        |        |
+(ERP)   (Inbox) (Automation) (AI Agents)
+
+  + KPI (Metabase)
+  + Storage (Supabase)
+  + Secrets (Vault)
 ```
 
 ---
 
-## 🧪 Uso
+# 📡 **Principales Endpoints**
 
-### Health Check
+## 🔐 Auth
+
+```
+GET  /auth/me
+POST /auth/validate
+POST /auth/refresh
+```
+
+## 🧠 AI
+
+```
+POST /ai/chat
+POST /ai/rag/query
+POST /ai/classify
+POST /ai/ocr
+```
+
+## 🛍️ Shopify / Odoo
+
+```
+POST /shopify/webhook/orders
+POST /shopify/webhook/products
+GET  /odoo/products
+POST /odoo/orders
+```
+
+## 💬 Chatwoot
+
+```
+POST /chatwoot/webhook
+POST /chatwoot/send
+```
+
+## 🤖 Automatizaciones n8n
+
+```
+POST /n8n/trigger
+POST /n8n/workflow/{id}
+```
+
+---
+
+# 🛡️ **Seguridad Multi-Capa**
+
+✔ Clerk JWT Validation  
+✔ HMAC Shopify  
+✔ Supabase RLS  
+✔ Vault Secrets por tenant  
+✔ Audit Logs (MCP)  
+✔ Rate-limiting por IP  
+✔ API Keys por integraciones  
+
+---
+
+# 📂 **Estructura del Repositorio**
+
+```
+/api
+├─ app/
+│  ├─ main.py
+│  ├─ auth/
+│  ├─ tenants/
+│  ├─ shopify/
+│  ├─ odoo/
+│  ├─ chatwoot/
+│  ├─ n8n/
+│  └─ ai/
+├─ tests/
+├─ docker-compose.yml
+├─ Dockerfile
+└─ README.md  ← este documento
+```
+
+---
+
+# 🔧 **Requisitos Técnicos**
+
+- Docker 24+
+- Python 3.11+
+- FastAPI
+- Clerk SDK
+- Supabase Python SDK
+- Pydantic v2
+- PostgreSQL 16
+- Redis (opcional)
+
+---
+
+# 🚀 **Deployment**
 
 ```bash
-curl https://api.smarterbot.cl/health
+git pull origin main
+docker compose build
+docker compose up -d
 ```
 
-**Respuesta**:
-```json
-{
-  "status": "healthy",
-  "timestamp": "2025-12-07T13:34:58Z",
-  "mcp_enabled": true,
-  "mcp_mode": "governed",
-  "qwen_configured": true,
-  "openrouter_configured": true
-}
-```
+Variables necesarias en `.env`:
 
-### Qwen Completion
-
-```bash
-curl -X POST https://api.smarterbot.cl/ai/qwen \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "prompt": "Explica qué es SmarterOS",
-    "model": "qwen-turbo"
-  }'
-```
-
-### OpenRouter Completion
-
-```bash
-curl -X POST https://api.smarterbot.cl/ai/openrouter \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "prompt": "Hola, necesito ayuda con mi empresa",
-    "model": "openai/gpt-4"
-  }'
-```
-
-### MCP Protocol
-
-```bash
-curl -X POST https://api.smarterbot.cl/mcp \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"method": "tools/list"}'
+```env
+CLERK_SECRET_KEY=
+CLERK_PUBLISHABLE_KEY=
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE=
+OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
+GOOGLE_API_KEY=
 ```
 
 ---
 
-## 🛠️ Despliegue Local
+# 🗺️ **Roadmap 2026**
 
-### Requisitos
-
-- Docker & Docker Compose
-- Python 3.12+
-- Variables de entorno configuradas
-
-### Quick Start
-
-```bash
-# Clonar repositorio
-git clone https://github.com/SmarterCL/api.smarterbot.cl
-cd api.smarterbot.cl
-
-# Configurar variables de entorno
-cp .env.example .env
-# Editar .env con tus tokens
-
-# Construir e iniciar
-docker-compose up -d
-
-# Verificar
-curl http://localhost:3000/health
-```
-
-### Desarrollo
-
-```bash
-# Instalar dependencias
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
-# Ejecutar en desarrollo
-uvicorn main:app --reload --host 0.0.0.0 --port 3000
-```
+- 🔄 Sincronización Shopify/Odoo 2.0
+- 🧾 Módulo de facturación SII
+- 💳 Pagos Chile (Webpay, Khipu, MACH)
+- 🧠 Agentes Cognitivos RUT → SII
+- 📊 Analytics predictivo Next-Level
+- 🧩 Shopify App pública
+- 📱 App móvil SmarterOS
 
 ---
 
-## 📦 Stack Tecnológico
+# 🤝 **Contacto**
 
-- **FastAPI**: Framework web moderno y rápido
-- **FastAPI-MCP**: Integración MCP nativa
-- **Pydantic**: Validación de datos
-- **Uvicorn**: Servidor ASGI
-- **httpx**: Cliente HTTP asíncrono
-- **Docker**: Containerización
+**SmarterBot Chile — Plataforma Cognitiva para PYMEs**
 
----
-
-## 🔄 CI/CD
-
-Esta API se despliega automáticamente en:
-- **Producción**: https://api.smarterbot.cl
-- **Container**: `smarteros-api-mcp`
-- **Network**: `smarteros` (Docker)
-- **Proxy**: Caddy reverse proxy
+🌍 https://smarterbot.cl  
+✉️ smarterbotcl@gmail.com  
+📱 +56 9 7954 0471  
 
 ---
 
-## 📚 Documentación
-
-- **OpenAPI Docs**: https://api.smarterbot.cl/docs
-- **ReDoc**: https://api.smarterbot.cl/redoc
-- **FastAPI-MCP**: https://github.com/tadata-org/fastapi_mcp
-- **SmarterOS**: https://github.com/SmarterCL
-
----
-
-## 🤝 Contribuir
-
-1. Fork el repositorio
-2. Crea una rama para tu feature (`git checkout -b feature/amazing-feature`)
-3. Commit tus cambios (`git commit -m 'Add amazing feature'`)
-4. Push a la rama (`git push origin feature/amazing-feature`)
-5. Abre un Pull Request
-
----
-
-## 📝 Licencia
-
-Este proyecto es parte de SmarterOS y se distribuye bajo licencia de código abierto.
-
----
-
-## 🔗 Enlaces
-
-- **SmarterOS**: https://smarteros.cl
-- **GitHub Org**: https://github.com/SmarterCL
-- **API Docs**: https://api.smarterbot.cl/docs
-
----
-
-## 📞 Soporte
-
-Para soporte y consultas:
-- **Email**: smarterbotcl@gmail.com
-- **GitHub Issues**: https://github.com/SmarterCL/api.smarterbot.cl/issues
-
----
-
-**Hecho con ❤️ por el equipo de SmarterOS**
+**Hecho en Chile 🇨🇱**

@@ -10,6 +10,8 @@ services:
       - QWEN_API_KEY=${QWEN_API_KEY}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - MCP_MODE=governed
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
     restart: unless-stopped
     networks:
       - smarteros
